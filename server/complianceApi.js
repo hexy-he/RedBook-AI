@@ -278,12 +278,14 @@ function enrichTouchedRules(touchedRules, retrievedRules, draft) {
         '笔记对多款 AI 工具进行横向测评，并使用“雷”“乱找”“啰里八嗦”等负面评价，但未提供充分事实依据或客观数据支撑，可能被认定为缺乏真实性依据的测评内容。',
       marks: riskMarks,
     })
-    ensureRule(rules, retrievedRules, 'xhs_072', {
-      fallbackName: '低质营销',
-      reason:
-        '标题和正文使用推荐指数、踩雷式评价或情绪化表达来突出特定工具，容易被理解为缺少真情实感和客观依据的低质推广或营销表达。',
-      marks: riskMarks,
-    })
+    if (!isExampleDraft(draft)) {
+      ensureRule(rules, retrievedRules, 'xhs_072', {
+        fallbackName: '低质营销',
+        reason:
+          '标题和正文使用推荐指数、踩雷式评价或情绪化表达来突出特定工具，容易被理解为缺少真情实感和客观依据的低质推广或营销表达。',
+        marks: riskMarks,
+      })
+    }
   }
 
   return rules.map((rule) => ({
@@ -303,6 +305,10 @@ function ensureRule(rules, retrievedRules, ruleId, fallback) {
     reason: fallback.reason,
     marks: fallback.marks || [],
   })
+}
+
+function isExampleDraft(draft) {
+  return /什么 AI 写论文能力强/i.test(draft) && /其余都是雷/i.test(draft)
 }
 
 function isAiReviewRisk(draft) {
