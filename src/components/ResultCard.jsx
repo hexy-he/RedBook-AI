@@ -26,6 +26,7 @@ export default function ResultCard({ result }) {
           )}
         </motion.div>
       ))}
+      <Disclaimer />
     </div>
   )
 }
@@ -47,7 +48,10 @@ function StructuredResult({ result }) {
             {touchedRules.map((rule, index) => (
               <div key={`${rule.rule_id}-${index}`}>
                 <div className="mb-2 text-[15.5px] font-semibold leading-[1.6] text-ink">
-                  {touchedRules.length > 1 ? `${index + 1}. ` : ''}{formatRuleId(rule.rule_id)} {rule.rule_name}
+                  {touchedRules.length > 1 ? `${index + 1}. ` : ''}{rule.rule_name}
+                  {formatRuleNumber(rule.rule_id) && (
+                    <span className="ml-1 text-[12.5px] font-normal text-ink-sub">（{formatRuleNumber(rule.rule_id)}）</span>
+                  )}
                 </div>
                 <div className="text-[15px] leading-[1.72] text-ink-regular">
                   <Highlighted text={rule.reason} marks={rule.marks} />
@@ -79,10 +83,26 @@ function StructuredResult({ result }) {
           )}
         </div>
       </motion.div>
+
+      <Disclaimer />
+    </div>
+  )
+}
+
+function Disclaimer() {
+  return (
+    <div className="mt-[18px] text-[12.5px] leading-[1.6] text-ink-sub">
+      以上结果仅供发布前参考，不代表最终审核结论；能否通过审核，仍以实际发布后的结果为准。
     </div>
   )
 }
 
 function formatRuleId(ruleId) {
   return String(ruleId || '').replace('_', '-')
+}
+
+// 从 rule_id（如 xhs_070 / xhs-070）中取出编号数字，用于灰色小字展示
+function formatRuleNumber(ruleId) {
+  const match = String(ruleId || '').match(/(\d+)/)
+  return match ? match[1] : ''
 }
