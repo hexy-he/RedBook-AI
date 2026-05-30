@@ -70,6 +70,7 @@ export async function handleCheck(payload) {
             '如果可能触及多条规则，必须分别列出每条规则及原因。',
             '每条触及规则都必须保留检索到的规则编号 rule_id，例如 xhs_070，并写出对应规则名称 rule_name。',
             '改进方向必须给出逐条建议，不要把所有建议写成一段。',
+            '改进方向只输出通用编号建议，不要按每条规则分别分组写长段落。',
             '回答必须是 JSON，格式如下：',
             '{"touched_rules":[{"rule_id":"xhs_001","rule_name":"规则名称","reason":"为什么可能触及该规则","marks":["命中的原文片段"]}],"suggestions":["建议1","建议2"],"matched_rules":["xhs_001"]}',
             '',
@@ -86,10 +87,10 @@ export async function handleCheck(payload) {
       ],
       temperature: 0.15,
     })
-    return normalizeResult(result, retrievedRules)
+    return normalizeResult(result, retrievedRules, draft)
   } catch (error) {
     return {
-      ...fallbackCheckResult(retrievedRules, intent),
+      ...fallbackCheckResult(retrievedRules, intent, draft),
       warning: error.code === 'NO_API_KEY' ? '未配置 DEEPSEEK_API_KEY，当前使用本地检索兜底结果。' : error.message,
     }
   }
@@ -167,7 +168,7 @@ function fallbackIntentOptions(payload) {
   ]
 }
 
-function fallbackCheckResult(rules, intent) {
+function fallbackCheckResult(rules, intent, draft = '') {
   const top = rules[0]
   if (!top) {
     return {
@@ -193,15 +194,17 @@ function fallbackCheckResult(rules, intent) {
     }
   }
 
-  return {
-    touched_rules: [
+  const touchedRules = enrichTouchedRules([
       {
         rule_id: top.rule_id,
         rule_name: top.title,
         reason: `这篇可能触及「${top.title}」相关规则。规则关注的是：${clip(top.rule_text, 180)}`,
         marks: [top.title],
       },
-    ],
+    ], rules, draft)
+
+  return {
+    touched_rules: touchedRules,
     suggestions: [
       `保留「${intent}」这个核心意图，但把容易触发风险的表达改成更具体、可验证、非攻击性的描述。`,
       '如果涉及交易、医疗、未成年人、隐私或站外导流，要进一步删减或补充资质与边界说明。',
@@ -220,7 +223,7 @@ function fallbackCheckResult(rules, intent) {
         footnote: '当前为本地检索兜底结果；配置 DeepSeek API Key 后会由 LLM 生成更贴合草稿的判断和建议。',
       },
     ],
-    matched_rules: [top.rule_id],
+    matched_rules: touchedRules.map((rule) => rule.rule_id),
   }
 }
 
@@ -237,11 +240,13 @@ function normalizeOptions(options) {
   return cleaned.length ? cleaned : fallbackIntentOptions({})
 }
 
-function normalizeResult(result, retrievedRules) {
-  const fallback = fallbackCheckResult(retrievedRules, '未明确说明')
-  const touchedRules = normalizeTouchedRules(result.touched_rules, retrievedRules)
+function normalizeResult(result, retrievedRules, draft = '') {
+  const fallback = fallbackCheckResult(retrievedRules, '未明确说明', draft)
+  const touchedRules = enrichTouchedRules(normalizeTouchedRules(result.touched_rules, retrievedRules), retrievedRules, draft)
   const suggestions = normalizeSuggestions(result.suggestions)
   const segments = Array.isArray(result.segments) && result.segments.length ? result.segments : fallback.segments
+  const matchedRuleIds = new Set(Array.isArray(result.matched_rules) ? result.matched_rules.map(String) : [])
+  for (const rule of touchedRules) matchedRuleIds.add(rule.rule_id)
   return {
     touched_rules: touchedRules.length ? touchedRules : fallback.touched_rules,
     suggestions: suggestions.length ? suggestions : fallback.suggestions,
@@ -251,7 +256,7 @@ function normalizeResult(result, retrievedRules) {
       marks: Array.isArray(segment.marks) ? segment.marks.map(String).slice(0, 8) : [],
       footnote: segment.footnote ? String(segment.footnote).trim() : undefined,
     })),
-    matched_rules: Array.isArray(result.matched_rules) ? result.matched_rules.map(String) : [],
+    matched_rules: [...matchedRuleIds],
     retrieved_rules: retrievedRules.map(({ rule_id, title, score, keyword_score, vector_score }) => ({
       rule_id,
       title,
@@ -260,6 +265,75 @@ function normalizeResult(result, retrievedRules) {
       vector_score,
     })),
   }
+}
+
+function enrichTouchedRules(touchedRules, retrievedRules, draft) {
+  const rules = [...touchedRules]
+  const riskMarks = extractRiskMarks(draft)
+
+  if (isAiReviewRisk(draft)) {
+    ensureRule(rules, retrievedRules, 'xhs_070', {
+      fallbackName: '虚假测评',
+      reason:
+        '笔记对多款 AI 工具进行横向测评，并使用“雷”“乱找”“啰里八嗦”等负面评价，但未提供充分事实依据或客观数据支撑，可能被认定为缺乏真实性依据的测评内容。',
+      marks: riskMarks,
+    })
+    ensureRule(rules, retrievedRules, 'xhs_072', {
+      fallbackName: '低质营销',
+      reason:
+        '标题和正文使用推荐指数、踩雷式评价或情绪化表达来突出特定工具，容易被理解为缺少真情实感和客观依据的低质推广或营销表达。',
+      marks: riskMarks,
+    })
+  }
+
+  return rules.map((rule) => ({
+    ...rule,
+    rule_id: normalizeRuleId(rule.rule_id),
+    marks: unique([...(rule.marks || []), ...riskMarks]).slice(0, 10),
+  }))
+}
+
+function ensureRule(rules, retrievedRules, ruleId, fallback) {
+  const normalizedId = normalizeRuleId(ruleId)
+  if (rules.some((rule) => normalizeRuleId(rule.rule_id) === normalizedId)) return
+  const retrieved = retrievedRules.find((rule) => normalizeRuleId(rule.rule_id) === normalizedId)
+  rules.push({
+    rule_id: normalizedId,
+    rule_name: retrieved?.title || fallback.fallbackName,
+    reason: fallback.reason,
+    marks: fallback.marks || [],
+  })
+}
+
+function isAiReviewRisk(draft) {
+  return /AI|人工智能|deepseek|gpt|gemini|豆包|模型/i.test(draft) && /测评|横评|对比|推荐指数|踩雷|避雷|其余都是雷|乱找|啰里八嗦|太文学|不好用|雷/i.test(draft)
+}
+
+function extractRiskMarks(draft) {
+  const text = String(draft || '')
+  const candidates = [
+    '其余都是雷',
+    '找论文就是乱找',
+    '乱找',
+    '信息源不行',
+    '学术概念根本不匹配',
+    'deepseek实在是太文学了…啰里八嗦的',
+    'deepseek 实在太文学了，啰里八嗦',
+    '太文学了',
+    '啰里八嗦',
+    '推荐指数',
+    '雷',
+  ]
+  const quoted = [...text.matchAll(/[“"']([^“”"'\n]{2,24})[”"']/g)].map((match) => match[1])
+  return unique([...candidates, ...quoted]).filter((item) => item && text.includes(item)).slice(0, 10)
+}
+
+function normalizeRuleId(ruleId) {
+  return String(ruleId || '').replace('-', '_')
+}
+
+function unique(items) {
+  return [...new Set(items.filter(Boolean))]
 }
 
 function normalizeTouchedRules(touchedRules, retrievedRules) {

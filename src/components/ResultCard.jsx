@@ -47,7 +47,7 @@ function StructuredResult({ result }) {
             {touchedRules.map((rule, index) => (
               <div key={`${rule.rule_id}-${index}`}>
                 <div className="mb-2 text-[15.5px] font-semibold leading-[1.6] text-ink">
-                  {index + 1}. {formatRuleId(rule.rule_id)} {rule.rule_name}
+                  {touchedRules.length > 1 ? `${index + 1}. ` : ''}{formatRuleId(rule.rule_id)} {rule.rule_name}
                 </div>
                 <div className="text-[15px] leading-[1.72] text-ink-regular">
                   <Highlighted text={rule.reason} marks={rule.marks} />

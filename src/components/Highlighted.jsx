@@ -11,7 +11,7 @@ export default function Highlighted({ text, marks = [] }) {
     <>
       {parts.map((part, i) =>
         marks.includes(part) ? (
-          <mark key={i} className="rounded bg-hl px-1 py-[1px] text-[#7A5A00]">
+          <mark key={i} className="rounded bg-[#FFF1B8] px-1 py-[1px] text-[#7A5A00]">
             {part}
           </mark>
         ) : (
