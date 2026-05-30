@@ -67,8 +67,10 @@ export async function handleCheck(payload) {
           content: [
             '请基于给定规则，对小红书草稿做发布前合规预检。',
             '只使用给定规则，不要编造规则。结论要谨慎：不确定时说“可能触及”。',
+            '如果可能触及多条规则，必须分别列出每条规则及原因。',
+            '改进方向必须给出逐条建议，不要把所有建议写成一段。',
             '回答必须是 JSON，格式如下：',
-            '{"segments":[{"title":"命中哪条规则","body":"...","marks":["..."]},{"title":"改进方向","body":"...","marks":["..."],"footnote":"可选"}],"matched_rules":["xhs_001"]}',
+            '{"touched_rules":[{"rule_id":"xhs_001","rule_name":"规则名称","reason":"为什么可能触及该规则","marks":["命中的原文片段"]}],"suggestions":["建议1","建议2"],"matched_rules":["xhs_001"]}',
             '',
             '用户确认的创作意图：',
             intent,
@@ -168,6 +170,12 @@ function fallbackCheckResult(rules, intent) {
   const top = rules[0]
   if (!top) {
     return {
+      touched_rules: [],
+      suggestions: [
+        '补充更完整的标题、正文或具体表达场景后再做预检。',
+        '优先检查是否存在绝对化承诺、攻击性措辞、站外导流、医疗金融等高风险表达。',
+        '把主观体验写成具体场景和可验证依据，避免空泛评价。',
+      ],
       segments: [
         {
           title: '命中哪条规则',
@@ -185,6 +193,19 @@ function fallbackCheckResult(rules, intent) {
   }
 
   return {
+    touched_rules: [
+      {
+        rule_id: top.rule_id,
+        rule_name: top.title,
+        reason: `这篇可能触及「${top.title}」相关规则。规则关注的是：${clip(top.rule_text, 180)}`,
+        marks: [top.title],
+      },
+    ],
+    suggestions: [
+      `保留「${intent}」这个核心意图，但把容易触发风险的表达改成更具体、可验证、非攻击性的描述。`,
+      '如果涉及交易、医疗、未成年人、隐私或站外导流，要进一步删减或补充资质与边界说明。',
+      '避免使用绝对化、情绪化或无事实依据的负面评价。',
+    ],
     segments: [
       {
         title: '命中哪条规则',
@@ -217,8 +238,12 @@ function normalizeOptions(options) {
 
 function normalizeResult(result, retrievedRules) {
   const fallback = fallbackCheckResult(retrievedRules, '未明确说明')
+  const touchedRules = normalizeTouchedRules(result.touched_rules, retrievedRules)
+  const suggestions = normalizeSuggestions(result.suggestions)
   const segments = Array.isArray(result.segments) && result.segments.length ? result.segments : fallback.segments
   return {
+    touched_rules: touchedRules.length ? touchedRules : fallback.touched_rules,
+    suggestions: suggestions.length ? suggestions : fallback.suggestions,
     segments: segments.slice(0, 3).map((segment) => ({
       title: String(segment.title || '建议').trim(),
       body: String(segment.body || '').trim(),
@@ -234,6 +259,38 @@ function normalizeResult(result, retrievedRules) {
       vector_score,
     })),
   }
+}
+
+function normalizeTouchedRules(touchedRules, retrievedRules) {
+  if (!Array.isArray(touchedRules)) return []
+  return touchedRules
+    .map((rule, index) => {
+      const matched = retrievedRules.find((item) => item.rule_id === rule.rule_id)
+      return {
+        rule_id: String(rule.rule_id || matched?.rule_id || `rule_${index + 1}`),
+        rule_name: String(rule.rule_name || matched?.title || rule.title || '相关规则').trim(),
+        reason: stripListMarkers(String(rule.reason || rule.body || '').trim()),
+        marks: Array.isArray(rule.marks) ? rule.marks.map(String).slice(0, 8) : [],
+      }
+    })
+    .filter((rule) => rule.rule_name && rule.reason)
+    .slice(0, 5)
+}
+
+function normalizeSuggestions(suggestions) {
+  if (Array.isArray(suggestions)) {
+    return suggestions.map((item) => stripListMarkers(String(item).trim())).filter(Boolean).slice(0, 6)
+  }
+  if (typeof suggestions !== 'string') return []
+  return suggestions
+    .split(/\n+/)
+    .map((line) => stripListMarkers(line.trim()))
+    .filter(Boolean)
+    .slice(0, 6)
+}
+
+function stripListMarkers(text) {
+  return text.replace(/^[-*•]\s*/, '').replace(/^\d+[.、]\s*/, '').trim()
 }
 
 function formatDraft(payload) {
