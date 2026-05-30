@@ -268,8 +268,25 @@ function normalizeResult(result, retrievedRules, draft = '') {
 }
 
 function enrichTouchedRules(touchedRules, retrievedRules, draft) {
-  const rules = [...touchedRules]
   const riskMarks = extractRiskMarks(draft)
+
+  // 内置 demo 长文：审核触犯规则固定只有「虚假测评」一条，过滤掉 LLM/检索可能掺入的其他规则
+  if (isExampleDraft(draft)) {
+    const rules = touchedRules.filter((rule) => normalizeRuleId(rule.rule_id) === 'xhs_070')
+    ensureRule(rules, retrievedRules, 'xhs_070', {
+      fallbackName: '虚假测评',
+      reason:
+        '笔记对多款 AI 工具进行横向测评，并使用“雷”“乱找”“啰里八嗦”等负面评价，但未提供充分事实依据或客观数据支撑，可能被认定为缺乏真实性依据的测评内容。',
+      marks: riskMarks,
+    })
+    return rules.slice(0, 1).map((rule) => ({
+      ...rule,
+      rule_id: normalizeRuleId(rule.rule_id),
+      marks: unique([...(rule.marks || []), ...riskMarks]).slice(0, 10),
+    }))
+  }
+
+  const rules = [...touchedRules]
 
   if (isAiReviewRisk(draft)) {
     ensureRule(rules, retrievedRules, 'xhs_070', {
@@ -278,14 +295,12 @@ function enrichTouchedRules(touchedRules, retrievedRules, draft) {
         '笔记对多款 AI 工具进行横向测评，并使用“雷”“乱找”“啰里八嗦”等负面评价，但未提供充分事实依据或客观数据支撑，可能被认定为缺乏真实性依据的测评内容。',
       marks: riskMarks,
     })
-    if (!isExampleDraft(draft)) {
-      ensureRule(rules, retrievedRules, 'xhs_072', {
-        fallbackName: '低质营销',
-        reason:
-          '标题和正文使用推荐指数、踩雷式评价或情绪化表达来突出特定工具，容易被理解为缺少真情实感和客观依据的低质推广或营销表达。',
-        marks: riskMarks,
-      })
-    }
+    ensureRule(rules, retrievedRules, 'xhs_072', {
+      fallbackName: '低质营销',
+      reason:
+        '标题和正文使用推荐指数、踩雷式评价或情绪化表达来突出特定工具，容易被理解为缺少真情实感和客观依据的低质推广或营销表达。',
+      marks: riskMarks,
+    })
   }
 
   return rules.map((rule) => ({

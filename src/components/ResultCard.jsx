@@ -47,10 +47,14 @@ function StructuredResult({ result }) {
           <div className="space-y-4">
             {touchedRules.map((rule, index) => (
               <div key={`${rule.rule_id}-${index}`}>
-                <div className="mb-2 text-[15.5px] font-semibold leading-[1.6] text-ink">
-                  {touchedRules.length > 1 ? `${index + 1}. ` : ''}{rule.rule_name}
+                <div className="mb-2">
+                  <div className="text-[15.5px] font-semibold leading-[1.6] text-ink">
+                    {touchedRules.length > 1 ? `${index + 1}. ` : ''}{rule.rule_name}
+                  </div>
                   {formatRuleNumber(rule.rule_id) && (
-                    <span className="ml-1 text-[12.5px] font-normal text-ink-sub">（{formatRuleNumber(rule.rule_id)}）</span>
+                    <div className="mt-0.5 text-[12.5px] font-normal leading-[1.5] text-ink-sub">
+                      根据《小红书社区规范》第 {formatRuleNumber(rule.rule_id)} 条
+                    </div>
                   )}
                 </div>
                 <div className="text-[15px] leading-[1.72] text-ink-regular">

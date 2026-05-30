@@ -126,6 +126,8 @@ export default function AskSheet({ isOpen, onClose, title, body, mountPoint }) {
       isOpen={isOpen}
       onClose={onClose}
       mountPoint={mountPoint ?? undefined}
+      snapPoints={[0.66]}
+      initialSnap={0}
       disableScrollLocking={false}
     >
       <Sheet.Container>
