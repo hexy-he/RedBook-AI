@@ -1,0 +1,25 @@
+.greeting {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.35;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: #D8D8DC;
+  border-radius: 999px;
+  margin: 10px auto 0;
+}
+
+.sheet-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 16px 0 8px;
+}

@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --xhs-red: #FF2442;
+  --xhs-red-press: #E51F3A;
+  --xhs-pink: #FBC4CC;
+  --ask-blue: #017AFC;
+  --text-primary: #1A1A1A;
+  --text-regular: #333333;
+  --text-secondary: #888888;
+  --text-placeholder: #B2B2B2;
+  --fill-chip: #F4F4F5;
+  --fill-input: #F7F7F8;
+  --line: #EBEBEB;
+  --bg-page: #FFFFFF;
+  --highlight: #FFF4D6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
