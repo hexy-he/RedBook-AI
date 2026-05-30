@@ -23,7 +23,7 @@ const assistantActions = [
 ]
 
 // 页面 B：「问一问」合规预检半屏弹层
-export default function AskSheet({ isOpen, onClose, title, body }) {
+export default function AskSheet({ isOpen, onClose, title, body, mountPoint }) {
   // phase: 'intent'（待对齐意图）| 'thinking'（AI 处理中）| 'answered'（已出建议）
   const [phase, setPhase] = useState('intent')
   const [selectedId, setSelectedId] = useState(null)
@@ -125,6 +125,7 @@ export default function AskSheet({ isOpen, onClose, title, body }) {
     <Sheet
       isOpen={isOpen}
       onClose={onClose}
+      mountPoint={mountPoint ?? undefined}
       snapPoints={[0.92, 0.7]}
       initialSnap={1}
       disableScrollLocking={false}

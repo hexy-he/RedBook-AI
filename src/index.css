@@ -35,18 +35,12 @@ body {
   scrollbar-width: none;
 }
 
-/* react-modal-sheet：约束在 440px 手机列内并居中（桌面预览对齐手机） */
+/* react-modal-sheet：通过 mountPoint 挂载在手机容器内，抽屉与遮罩自然约束在手机框内 */
 .react-modal-sheet-container {
   border-radius: 20px 20px 0 0 !important;
-  max-width: 440px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
 }
 .react-modal-sheet-backdrop {
   background: rgba(0, 0, 0, 0.4) !important;
-  max-width: 440px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
 }
 
 /* 流式光标 */
