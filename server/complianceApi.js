@@ -68,6 +68,7 @@ export async function handleCheck(payload) {
             '请基于给定规则，对小红书草稿做发布前合规预检。',
             '只使用给定规则，不要编造规则。结论要谨慎：不确定时说“可能触及”。',
             '如果可能触及多条规则，必须分别列出每条规则及原因。',
+            '每条触及规则都必须保留检索到的规则编号 rule_id，例如 xhs_070，并写出对应规则名称 rule_name。',
             '改进方向必须给出逐条建议，不要把所有建议写成一段。',
             '回答必须是 JSON，格式如下：',
             '{"touched_rules":[{"rule_id":"xhs_001","rule_name":"规则名称","reason":"为什么可能触及该规则","marks":["命中的原文片段"]}],"suggestions":["建议1","建议2"],"matched_rules":["xhs_001"]}',
