@@ -47,7 +47,7 @@ function StructuredResult({ result }) {
             {touchedRules.map((rule, index) => (
               <div key={`${rule.rule_id}-${index}`}>
                 <div className="mb-2 text-[15.5px] font-semibold leading-[1.6] text-ink">
-                  可能触及规则：{rule.rule_name}
+                  {index + 1}. {rule.rule_name}
                 </div>
                 <div className="text-[15px] leading-[1.72] text-ink-regular">
                   <Highlighted text={rule.reason} marks={rule.marks} />
