@@ -126,8 +126,6 @@ export default function AskSheet({ isOpen, onClose, title, body, mountPoint }) {
       isOpen={isOpen}
       onClose={onClose}
       mountPoint={mountPoint ?? undefined}
-      snapPoints={[0.92, 0.7]}
-      initialSnap={1}
       disableScrollLocking={false}
     >
       <Sheet.Container>
@@ -141,8 +139,8 @@ export default function AskSheet({ isOpen, onClose, title, body, mountPoint }) {
 
         <Sheet.Content disableDrag>
           <div className="flex h-full flex-col">
-            {/* 对话内容区 */}
-            <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-5 pt-3">
+            {/* 对话内容区：min-h-0 保证在 flex 列里能正确滚动，而不是把底部输入框撑出可视区 */}
+            <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pt-3">
               {messages.map((msg, i) => (
                 <Bubble key={i} msg={msg} opening={intentData} />
               ))}
