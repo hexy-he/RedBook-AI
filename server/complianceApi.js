@@ -13,7 +13,7 @@ export function complianceApiPlugin() {
   }
 }
 
-async function handleIntent(payload) {
+export async function handleIntent(payload) {
   const draft = formatDraft(payload)
   const rules = retrieveRules(draft, 6)
 
@@ -52,7 +52,7 @@ async function handleIntent(payload) {
   }
 }
 
-async function handleCheck(payload) {
+export async function handleCheck(payload) {
   const draft = formatDraft(payload)
   const intent = String(payload.intent || '未明确说明')
   const retrievedRules = retrieveRules(`${draft}\n用户意图：${intent}`, 10)
@@ -92,7 +92,7 @@ async function handleCheck(payload) {
   }
 }
 
-async function handleChat(payload) {
+export async function handleChat(payload) {
   const draft = formatDraft(payload)
   const intent = String(payload.intent || '未明确说明')
   const message = String(payload.message || '').trim()
@@ -137,7 +137,7 @@ async function handleChat(payload) {
   }
 }
 
-async function handleRetrieve(payload) {
+export async function handleRetrieve(payload) {
   const draft = formatDraft(payload)
   return { rules: retrieveRules(draft, Number(payload.limit) || 10) }
 }
